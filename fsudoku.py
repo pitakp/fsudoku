@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 #   This program is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ class Set:
 class Grid:
     def __init__(self, cells, size):
         self.size = size
-        self.cells = cells
+        self.cells = list(cells)
 
 
     def get(self, row, col):
@@ -50,17 +50,17 @@ class Grid:
 
 
     def getRow(self, row):
-        return Set(map(lambda col: self.get(row, col), range(self.size)),
-                   map(lambda col: row + col * self.size, range(self.size)))
+        return Set(list(map(lambda col: self.get(row, col), range(self.size))),
+                   list(map(lambda col: row + col * self.size, range(self.size))))
 
 
     def getCol(self, col):
-        return Set(map(lambda row: self.get(row, col), range(self.size)),
-                   map(lambda row: row + col * self.size, range(self.size)))
+        return Set(list(map(lambda row: self.get(row, col), range(self.size))),
+                   list(map(lambda row: row + col * self.size, range(self.size))))
 
 
     def getBlock(self, blk):
-        rowOffset = (blk / 3) * 3
+        rowOffset = (blk // 3) * 3
         colOffset = (blk % 3) * 3
         values = []
         indicies = []
@@ -116,7 +116,7 @@ class Puzzle:
 
     def assertValid(self):
         if not self.isValid():
-            print "Puzzle invalid"
+            print("Puzzle invalid")
             sys.exit(1)
 
 
@@ -138,7 +138,7 @@ class Puzzle:
             nums = line.split()
             if len(nums) == 0: continue
             if len(nums) != self.grid.size:
-                print "Invalid input at line ", row
+                print("Invalid input at line ", row)
 
             for col in range(self.grid.size):
                 if nums[col] == '?': self.grid.set(row, col, None)
@@ -147,6 +147,23 @@ class Puzzle:
             row = row + 1
             if row == self.grid.size: break
 
+    def read_file(self, file_name):
+        with open(file_name) as f:
+            row = 0
+            for line in f:
+                nums = line.split()
+                if len(nums) == 0: continue
+                if len(nums) != self.grid.size:
+                    print("Invalid input at line ", row)
+
+                for col in range(self.grid.size):
+                    if nums[col] == '?': self.grid.set(row, col, None)
+                    else: self.grid.set(row, col, int(nums[col]))
+
+                row = row + 1
+                if row == self.grid.size: break
+
+
 
 class Possible:
     def __init__(self, value = None):
@@ -154,7 +171,7 @@ class Possible:
 
 
     def set(self, value):
-        if value == None: self.possible = range(1, 10)
+        if value == None: self.possible = list(range(1, 10))
         else: self.possible = [value]
 
 
@@ -168,11 +185,11 @@ class Possible:
 
     def remove(self, value):
         if value in self.possible:
-            self.possible = filter(lambda x: x != value, self.possible)
+            self.possible = list(filter(lambda x: x != value, self.possible))
             return True
         return False
 
-
+combination_counter = 0
 
 class PossibleGrid:
     def __init__(self, puzzle):
@@ -198,7 +215,7 @@ class PossibleGrid:
 
     def findExclusives(self, set):
         exclusives = []
-        values = map(lambda x: [], range(self.grid.size))
+        values = list(map(lambda x: [], range(self.grid.size)))
 
         for cell in set.cells:
             if cell.count() != 1:
@@ -214,13 +231,15 @@ class PossibleGrid:
 
 
     def solve(self):
+        global combination_counter
+        combination_counter = combination_counter + 1
         while True:
-            while len(filter(lambda set: self.removeImpossible(set),
-                             self.grid.iterateSets())):
+            while len(list(filter(lambda set: self.removeImpossible(set),
+                             self.grid.iterateSets()))):
                 continue
 
-            exclusives = map(self.findExclusives, self.grid.iterateSets())
-            exclusives = filter(lambda x: x, exclusives)
+            exclusives = list(map(self.findExclusives, self.grid.iterateSets()))
+            exclusives = list(filter(lambda x: x, exclusives))
             if not exclusives: break
             for pair in exclusives:
                 pair[0].set(pair[1])
@@ -288,26 +307,34 @@ class PossibleGrid:
 
 
 def solve(puzzle):
-    print "Solving . . .",
+    print("Solving . . .")
     sys.stdout.flush()
     possible = PossibleGrid(puzzle)
     possible.solve()
 
     if not puzzle.isSolved():
-        print "hard . . .",
+        print ("hard . . .")
         sys.stdout.flush()
         possible.tryAllCombinations()
 
-    print "done"
+    print("done")
 
 
 puzzle = Puzzle()
 
-puzzle.read()
+## puzzle.read()
+if len(sys.argv) > 1:
+    puzzle.read_file(sys.argv[1])
+else:
+    sys.exit(1)
+
 puzzle.show()
 puzzle.assertValid()
-print '-------------------'
+print('-------------------')
 solve(puzzle)
 
 puzzle.show()
+
+print('Combinations:', combination_counter)
+
 puzzle.assertValid()
